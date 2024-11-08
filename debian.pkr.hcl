@@ -8,7 +8,8 @@ packer {
 }
 
 variable "iso_file" {
-  type = string
+  type    = string
+  default = "local:iso/debian-12.7.0-amd64-netinst.iso"
 }
 
 variable "cloudinit_storage_pool" {
@@ -74,19 +75,27 @@ variable "proxmox_node" {
 }
 
 source "proxmox-iso" "debian" {
-  proxmox_url              = "https://${var.proxmox_host}/api2/json"
-  insecure_skip_tls_verify = true
   username                 = var.proxmox_api_user
   password                 = var.proxmox_api_password
+  proxmox_url              = "https://${var.proxmox_host}/api2/json"
+  node                     = var.proxmox_node
+  insecure_skip_tls_verify = true
+  template_description     = "Built from ${basename(var.iso_file)} on ${formatdate("YYYY-MM-DD hh:mm:ss ZZZ", timestamp())}"
 
-  template_description = "Built from ${basename(var.iso_file)} on ${formatdate("YYYY-MM-DD hh:mm:ss ZZZ", timestamp())}"
-  node                 = var.proxmox_node
+  boot_iso {
+    type         = "scsi"
+    unmount      = true
+    iso_file     = var.iso_file
+    iso_checksum = "sha512:e0bd9ba03084a6fd42413b425a2d20e3731678a31fe5fb2cc84f79332129afca2ad4ec897b4224d6a833afaf28a5d938b0fe5d680983182944162c6825b135ce"
+  }
+
   network_adapters {
     bridge   = "vmbr0"
     firewall = true
     model    = "virtio"
     vlan_tag = var.network_vlan
   }
+
   disks {
     disk_size    = var.disk_size
     format       = var.disk_format
@@ -94,14 +103,12 @@ source "proxmox-iso" "debian" {
     storage_pool = var.disk_storage_pool
     type         = "scsi"
   }
+
   scsi_controller = "virtio-scsi-single"
 
-  iso_file       = var.iso_file
-  http_directory = "./"
-  boot_wait      = "5s"
-  boot_command   = ["<esc><wait>auto url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg<enter>"]
-  # unmount_iso    = true
-
+  http_directory          = "./"
+  boot_wait               = "5s"
+  boot_command            = ["<esc><wait>auto url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg<enter>"]
   cloud_init              = true
   cloud_init_storage_pool = var.cloudinit_storage_pool
 
@@ -118,6 +125,7 @@ source "proxmox-iso" "debian" {
   ssh_password = "packer"
   ssh_username = "root"
 }
+
 
 build {
   sources = ["source.proxmox-iso.debian"]
