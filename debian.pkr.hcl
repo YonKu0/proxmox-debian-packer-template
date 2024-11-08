@@ -13,7 +13,7 @@ variable "iso_file" {
 
 variable "cloudinit_storage_pool" {
   type    = string
-  default = "local-lvm"
+  default = "local-zfs"
 }
 
 variable "cores" {
@@ -33,12 +33,12 @@ variable "disk_size" {
 
 variable "disk_storage_pool" {
   type    = string
-  default = "local-lvm"
+  default = "local-zfs"
 }
 
 variable "cpu_type" {
   type    = string
-  default = "kvm64"
+  default = "host"
 }
 
 variable "memory" {
@@ -98,9 +98,9 @@ source "proxmox-iso" "debian" {
 
   iso_file       = var.iso_file
   http_directory = "./"
-  boot_wait      = "10s"
+  boot_wait      = "5s"
   boot_command   = ["<esc><wait>auto url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg<enter>"]
-  unmount_iso    = true
+  # unmount_iso    = true
 
   cloud_init              = true
   cloud_init_storage_pool = var.cloudinit_storage_pool
